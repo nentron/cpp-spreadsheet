@@ -43,6 +43,9 @@ std::unique_ptr<Impl>& Cell::GetImpl(){
     return impl_;
 }
 
+void Cell::Set(std::unique_ptr<Impl> impl){
+    impl_ = std::move(impl);
+}
 
 void Cell::Clear(){
     ResetCache();
@@ -91,7 +94,7 @@ CellInterface::Value FormulaImpl::GetValue() const {
 }
 
 std::string FormulaImpl::GetText() const {
-    return '=' + ast_ -> GetExpression();
+    return FORMULA_SIGN + ast_ -> GetExpression();
 }
 
 std::vector<Position> FormulaImpl::GetReferencedCells() const {

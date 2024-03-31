@@ -90,6 +90,8 @@ public:
 
     void Clear();
 
+    void Set(std::unique_ptr<Impl> impl);
+
     operator bool() const {
         return impl_ != nullptr;
     }

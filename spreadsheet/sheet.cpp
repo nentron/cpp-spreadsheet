@@ -30,6 +30,11 @@ void Sheet::InvalidateCache(const DependedCells& depended_cells){
     }
 }
 
+void Sheet::CheckPosValidation(Position pos) const {
+    if (!pos.IsValid()){
+        throw InvalidPositionException{"Wrong cell position, out of table"s};
+    }
+}
 
 void Sheet::RemoveOldDependedCells(Position cell, const std::vector<Position>& cells){
     for (auto pos : cells){
@@ -46,21 +51,20 @@ void Sheet::AddNewDependedCells(Position cell, const std::vector<Position>& cell
 }
 
 bool Sheet::SetImpl(std::unique_ptr<Cell>& cell, Position pos, std::string text){
-    auto& impl = cell -> GetImpl();
     const std::vector<Position> old_reff_pos = cell-> GetReferencedCells();
-    if (text[0] == '=' && text != "="s){
+    if (text[0] == FORMULA_SIGN && text.size() > 1){
         try {
-            auto temp = std::make_unique<FormulaImpl>(text.substr(1), *this);
+            std::unique_ptr<Impl> temp = std::make_unique<FormulaImpl>(text.substr(1), *this);
             CheckCircularDependency(pos, temp -> GetReferencedCells());
-            impl.reset(temp.release());
+            cell -> Set(std::move(temp));
         } catch (const ParsingError&)
         {
             return false;
         }
     } else if (!text.empty()){
-        impl = std::make_unique<TextImpl>(std::move(text));
+        cell -> Set(std::make_unique<TextImpl>(std::move(text)));
     } else {
-        impl = std::make_unique<EmptyImpl>();
+        cell -> Set(std::make_unique<EmptyImpl>());
     }
     cell -> ResetCache();
     if (depended_cells_.count(pos) != 0){
@@ -73,9 +77,7 @@ bool Sheet::SetImpl(std::unique_ptr<Cell>& cell, Position pos, std::string text)
 }
 
 void Sheet::SetCell(Position pos, std::string text){
-    if (!pos.IsValid()){
-        throw InvalidPositionException{"Wrong positions"s};
-    }
+    CheckPosValidation(pos);
 
     if (table_.count(pos) != 0){
         auto& cell = table_[pos];
@@ -98,18 +100,15 @@ void Sheet::SetCell(Position pos, std::string text){
 
 
 const CellInterface* Sheet::GetCell(Position pos) const {
-    if (!pos.IsValid()){
-        throw InvalidPositionException{"Bad pos"s};
-    }
+    CheckPosValidation(pos);
 
     return table_.count(pos) != 0 ? table_.at(pos).get() 
         : pos.col < cols_ && pos.row < rows_ ? EmptyCell.get() : nullptr;
 }
 
 CellInterface* Sheet::GetCell(Position pos){
-    if (!pos.IsValid()){
-        throw InvalidPositionException{"Bad pos"s};
-    }
+    CheckPosValidation(pos);
+
     return table_.count(pos) != 0 ? table_[pos].get() 
         : pos.col < cols_ && pos.row < rows_ ? EmptyCell.get() : nullptr;
 }
@@ -135,9 +134,8 @@ Size Sheet::GetPrintableSize() const {
 }
 
 void Sheet::ClearCell(Position pos){
-    if (!pos.IsValid()){
-        throw InvalidPositionException{"Wrong pos for delete"s};
-    }
+    CheckPosValidation(pos);
+
     if (pos.row < rows_ && pos.col < cols_){
         if (table_.count(pos) != 0){
             RemoveOldDependedCells(pos, table_.at(pos) -> GetReferencedCells());

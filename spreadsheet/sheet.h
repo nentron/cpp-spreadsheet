@@ -31,6 +31,8 @@ private:
     void RemoveOldDependedCells(Position cell, const std::vector<Position>& cells);
 
     void AddNewDependedCells(Position cell, const std::vector<Position>& cells);
+
+    void CheckPosValidation(Position pos) const;
 public:
     ~Sheet();
 

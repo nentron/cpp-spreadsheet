@@ -144,23 +144,32 @@ public:
 
     double Evaluate(const SheetInterface& sheet) const override {
         double number;
+        double left_number = lhs_ -> Evaluate(sheet);
+        double right_number = rhs_ -> Evaluate(sheet);
+
+        if (!std::isfinite(left_number) || !std::isfinite(right_number)){
+            throw FormulaError(FormulaError::Category::Arithmetic);
+        }
+
         switch (type_){
             case Add:
-                number = lhs_ -> Evaluate(sheet) + rhs_ -> Evaluate(sheet);
+                number = left_number + right_number;
                 break;
             case Subtract:
-                number = lhs_ -> Evaluate(sheet) - rhs_ -> Evaluate(sheet);
+                number = left_number - right_number;
                 break;
             case Multiply:
-                number = lhs_ -> Evaluate(sheet) * rhs_ -> Evaluate(sheet);
+                number = left_number * right_number;
                 break;
             case Divide:
-                number = lhs_ -> Evaluate(sheet) / rhs_ -> Evaluate(sheet);
+                number = left_number / right_number;
                 break;
         }
+
         if (!std::isfinite(number)){
             throw FormulaError(FormulaError::Category::Arithmetic);
         }
+
         return number;
     }
 
