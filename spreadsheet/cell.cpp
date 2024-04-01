@@ -15,16 +15,26 @@ CellInterface::Value Cell::GetValue() const {
     return value;
 }
 
+void Cell::CheckCircularDependency(Position current_pos, const std::vector<Position>& reff_cells){
+    for (auto pos : reff_cells){
+        if (pos == current_pos){
+            throw CircularDependencyException{"Wrong formula with circular"s};
+        }
+        const auto cell = sheet_.GetCell(pos);
+        CheckCircularDependency(current_pos, cell ? cell -> GetReferencedCells() : std::vector<Position>{});
+    }
+}
+
 Position& Cell::GetPos(){
-    return pos_;
+    return current_pos_;
 }
 
 const Position& Cell::GetPos() const {
-    return pos_;
+    return current_pos_;
 }
 
 void Cell::SetPos(Position pos){
-    pos_ = pos;
+    current_pos_ = pos;
 }
 
 std::string Cell::GetText() const {
@@ -43,12 +53,20 @@ std::unique_ptr<Impl>& Cell::GetImpl(){
     return impl_;
 }
 
-void Cell::Set(std::unique_ptr<Impl> impl){
-    impl_ = std::move(impl);
+void Cell::Set(std::string text){
+    if (text[0] == FORMULA_SIGN && text.size() > 1){
+        std::unique_ptr<Impl> temp = std::make_unique<FormulaImpl>(text.substr(1), sheet_);
+        CheckCircularDependency(current_pos_, temp -> GetReferencedCells());
+        impl_ = std::move(temp);
+    } else if (!text.empty()){
+        impl_ = std::make_unique<TextImpl>(std::move(text));
+    } else {
+        impl_ = std::make_unique<EmptyImpl>();
+    }
 }
 
 void Cell::Clear(){
-    ResetCache();
+    value_.reset();
     impl_.reset();
 }
 

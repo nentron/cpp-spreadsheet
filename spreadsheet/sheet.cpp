@@ -9,17 +9,6 @@ using namespace std::literals;
 Sheet::~Sheet() = default;
 
 
-void Sheet::CheckCircularDependency(Position start_pos, const std::vector<Position>& reff_cells){
-    for (const auto& pos : reff_cells){
-        if (start_pos == pos){
-            throw CircularDependencyException{"Circule in reff cells"s};
-        }
-        table_.count(pos) != 0 ? CheckCircularDependency(
-            start_pos, table_.at(pos) -> GetReferencedCells()
-        ) : CheckCircularDependency(start_pos, {});
-    }
-}
-
 void Sheet::InvalidateCache(const DependedCells& depended_cells){
     for (auto pos : depended_cells){
         if (table_.count(pos) != 0){
@@ -50,21 +39,12 @@ void Sheet::AddNewDependedCells(Position cell, const std::vector<Position>& cell
     }
 }
 
-bool Sheet::SetImpl(std::unique_ptr<Cell>& cell, Position pos, std::string text){
+bool Sheet::SuccessSet(std::unique_ptr<Cell>& cell, Position pos, std::string text){
     const std::vector<Position> old_reff_pos = cell-> GetReferencedCells();
-    if (text[0] == FORMULA_SIGN && text.size() > 1){
-        try {
-            std::unique_ptr<Impl> temp = std::make_unique<FormulaImpl>(text.substr(1), *this);
-            CheckCircularDependency(pos, temp -> GetReferencedCells());
-            cell -> Set(std::move(temp));
-        } catch (const ParsingError&)
-        {
-            return false;
-        }
-    } else if (!text.empty()){
-        cell -> Set(std::make_unique<TextImpl>(std::move(text)));
-    } else {
-        cell -> Set(std::make_unique<EmptyImpl>());
+    try {
+        cell -> Set(std::move(text));
+    } catch (const ParsingError&){
+        return false;
     }
     cell -> ResetCache();
     if (depended_cells_.count(pos) != 0){
@@ -82,12 +62,15 @@ void Sheet::SetCell(Position pos, std::string text){
     if (table_.count(pos) != 0){
         auto& cell = table_[pos];
         if ((cell -> GetImpl() && cell -> GetText() != text)){
-            SetImpl(cell, pos, std::move(text));
+            if (!SuccessSet(cell, pos, std::move(text))){
+                return ;
+            }
+
         }
     } else {
-        std::unique_ptr<Cell> cell = std::make_unique<Cell>();
-        if (SetImpl(cell, pos, std::move(text))){
-            cell -> SetPos(pos);
+        std::unique_ptr<Cell> cell = std::make_unique<Cell>(*this);
+        cell -> SetPos(pos);
+        if (SuccessSet(cell, pos, std::move(text))){
             table_[pos] = std::move(cell);
         } else {
             return;
@@ -153,15 +136,15 @@ void Sheet::ClearCell(Position pos){
 }
 
 void Sheet::PrintValues(std::ostream& out) const {
-    for (int r = 0; r < rows_; ++r){
-        for (int c = 0; c < cols_; ++c){
-            if (table_.count({r, c}) != 0){
+    for (int row = 0; row < rows_; ++row){
+        for (int col = 0; col < cols_; ++col){
+            if (table_.count({row, col}) != 0){
                 std::visit(
                     [&out](auto&& element){out << element;},
-                    table_.at({r, c}) -> GetValue()
+                    table_.at({row, col}) -> GetValue()
                 );
             }
-            if (c < cols_ - 1){
+            if (col < cols_ - 1){
                 out << '\t';
             }
         }
@@ -171,12 +154,12 @@ void Sheet::PrintValues(std::ostream& out) const {
 
 
 void Sheet::PrintTexts(std::ostream& out) const{
-    for (int r = 0; r < rows_; ++r){
-        for (int c = 0; c < cols_; ++c){
-            if (table_.count({r, c}) != 0){
-                out << table_.at({r, c}) -> GetText();
+    for (int row = 0; row < rows_; ++row){
+        for (int col = 0; col < cols_; ++col){
+            if (table_.count({row, col}) != 0){
+                out << table_.at({row, col}) -> GetText();
             }
-            if (c < cols_ - 1){
+            if (col < cols_ - 1){
                 out << '\t';
             }
         }

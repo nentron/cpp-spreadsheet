@@ -147,10 +147,6 @@ public:
         double left_number = lhs_ -> Evaluate(sheet);
         double right_number = rhs_ -> Evaluate(sheet);
 
-        if (!std::isfinite(left_number) || !std::isfinite(right_number)){
-            throw FormulaError(FormulaError::Category::Arithmetic);
-        }
-
         switch (type_){
             case Add:
                 number = left_number + right_number;
@@ -212,7 +208,7 @@ public:
             case UnaryMinus:
                 return -(operand_ -> Evaluate(sheet));
             default:
-                return +(operand_ -> Evaluate(sheet));
+                return operand_ -> Evaluate(sheet);
         }
     }
 

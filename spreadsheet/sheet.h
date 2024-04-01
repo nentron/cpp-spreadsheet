@@ -8,11 +8,10 @@
 #include <vector>
 
 
-
 class Sheet : public SheetInterface{
 private:
 
-    const std::unique_ptr<Cell> EmptyCell = std::make_unique<Cell>();
+    const std::unique_ptr<Cell> EmptyCell = std::make_unique<Cell>(*this);
 
     std::unordered_map<Position, std::unique_ptr<Cell>, PositionHash> table_;
     using DependedCells = std::unordered_set<Position, PositionHash>;
@@ -23,8 +22,7 @@ private:
     int cols_ = 0;
     void ReducePrintableSize();
 
-    bool SetImpl(std::unique_ptr<Cell>& cell, Position pos, std::string text);
-    void CheckCircularDependency(Position pos, const std::vector<Position>& reff_cells);
+    bool SuccessSet(std::unique_ptr<Cell>& cell, Position pos, std::string text);
 
     void InvalidateCache(const DependedCells& depended_cells);
 

@@ -48,6 +48,7 @@ class FormulaImpl: public Impl{
 private:
     std::unique_ptr<FormulaInterface> ast_;
     const SheetInterface& sheet_;
+
     std::vector<Position> refferenced_cells_;
 public:
     FormulaImpl(std::string expression,  const SheetInterface& sheet)
@@ -66,11 +67,18 @@ private:
 
     mutable std::optional<double> value_; //Кешируемая значение для формульной ячейки
 
-    Position pos_;
+    Position current_pos_;
 
     std::unique_ptr<Impl> impl_ = std::make_unique<EmptyImpl>(); // Уникальная ссылка
 
+    const SheetInterface& sheet_;
+
+    void CheckCircularDependency(Position current_pos, const std::vector<Position>& reff_cells);
+
 public:
+    explicit Cell(const SheetInterface& sheet)
+        : sheet_(sheet)
+    {}
     CellInterface::Value GetValue() const override;
 
     std::string GetText() const override;
@@ -90,7 +98,7 @@ public:
 
     void Clear();
 
-    void Set(std::unique_ptr<Impl> impl);
+    void Set(std::string text);
 
     operator bool() const {
         return impl_ != nullptr;
