@@ -26,10 +26,6 @@ private:
 
     void InvalidateCache(const DependedCells& depended_cells);
 
-    void RemoveOldDependedCells(Position cell, const std::vector<Position>& cells);
-
-    void AddNewDependedCells(Position cell, const std::vector<Position>& cells);
-
     void CheckPosValidation(Position pos) const;
 public:
     ~Sheet();
@@ -46,4 +42,9 @@ public:
 
     void PrintValues(std::ostream& out) const override;
     void PrintTexts(std::ostream& out) const override;
+    void InvalidCachePos(Position pos);
+
+    void RemoveOldDependedCells(Position cell, const std::vector<Position>& cells);
+
+    void AddNewDependedCells(Position cell, const std::vector<Position>& cells);
 };

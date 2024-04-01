@@ -1,4 +1,5 @@
 #include "cell.h"
+#include "sheet.h"
 
 using namespace std::literals;
 
@@ -15,13 +16,13 @@ CellInterface::Value Cell::GetValue() const {
     return value;
 }
 
-void Cell::CheckCircularDependency(Position current_pos, const std::vector<Position>& reff_cells){
+void Cell::CheckCircularDependency(const std::vector<Position>& reff_cells){
     for (auto pos : reff_cells){
-        if (pos == current_pos){
+        if (pos == current_pos_){
             throw CircularDependencyException{"Wrong formula with circular"s};
         }
-        const auto cell = sheet_.GetCell(pos);
-        CheckCircularDependency(current_pos, cell ? cell -> GetReferencedCells() : std::vector<Position>{});
+        const auto cell = sheet_ -> GetCell(pos);
+        CheckCircularDependency(cell ? cell -> GetReferencedCells() : std::vector<Position>{});
     }
 }
 
@@ -54,19 +55,27 @@ std::unique_ptr<Impl>& Cell::GetImpl(){
 }
 
 void Cell::Set(std::string text){
+    const std::vector<Position> old_ref_pos = impl_ ? GetReferencedCells() : std::vector<Position>();
     if (text[0] == FORMULA_SIGN && text.size() > 1){
-        std::unique_ptr<Impl> temp = std::make_unique<FormulaImpl>(text.substr(1), sheet_);
-        CheckCircularDependency(current_pos_, temp -> GetReferencedCells());
+        std::unique_ptr<Impl> temp = std::make_unique<FormulaImpl>(text.substr(1), *sheet_);
+        CheckCircularDependency(temp -> GetReferencedCells());
         impl_ = std::move(temp);
     } else if (!text.empty()){
         impl_ = std::make_unique<TextImpl>(std::move(text));
     } else {
         impl_ = std::make_unique<EmptyImpl>();
     }
+    ResetCache();
+    sheet_ -> InvalidCachePos(current_pos_);
+
+    sheet_ -> RemoveOldDependedCells(current_pos_, old_ref_pos);
+    sheet_ -> AddNewDependedCells(current_pos_, impl_ -> GetReferencedCells());
 }
 
 void Cell::Clear(){
     value_.reset();
+    sheet_ -> InvalidCachePos(current_pos_);
+    sheet_ -> RemoveOldDependedCells(current_pos_, impl_ -> GetReferencedCells());
     impl_.reset();
 }
 

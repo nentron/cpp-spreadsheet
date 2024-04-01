@@ -8,6 +8,11 @@ using namespace std::literals;
 
 Sheet::~Sheet() = default;
 
+void Sheet::InvalidCachePos(Position pos){
+    if (depended_cells_.count(pos) != 0){
+        InvalidateCache(depended_cells_.at(pos));
+    }
+}
 
 void Sheet::InvalidateCache(const DependedCells& depended_cells){
     for (auto pos : depended_cells){
@@ -46,13 +51,6 @@ bool Sheet::SuccessSet(std::unique_ptr<Cell>& cell, Position pos, std::string te
     } catch (const ParsingError&){
         return false;
     }
-    cell -> ResetCache();
-    if (depended_cells_.count(pos) != 0){
-        InvalidateCache(depended_cells_.at(pos));
-    }
-    RemoveOldDependedCells(pos, old_reff_pos);
-    AddNewDependedCells(pos, cell -> GetReferencedCells());
-
     return true;
 }
 
@@ -121,16 +119,13 @@ void Sheet::ClearCell(Position pos){
 
     if (pos.row < rows_ && pos.col < cols_){
         if (table_.count(pos) != 0){
-            RemoveOldDependedCells(pos, table_.at(pos) -> GetReferencedCells());
+            table_[pos] -> Clear();
             table_.erase(pos);
 
             if ((pos.col == cols_ - 1 && pos.row < rows_)
                 || (pos.row == rows_ - 1 && pos.col < cols_)){
                 ReducePrintableSize();
             }
-        }
-        if (depended_cells_.count(pos) != 0){
-            InvalidateCache(depended_cells_.at(pos));
         }
     }
 }

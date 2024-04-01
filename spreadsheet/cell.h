@@ -43,7 +43,6 @@ public:
     std::vector<Position> GetReferencedCells() const override;
 };
 
-
 class FormulaImpl: public Impl{
 private:
     std::unique_ptr<FormulaInterface> ast_;
@@ -62,6 +61,8 @@ public:
 };
 
 
+class Sheet;
+
 class  Cell: public CellInterface {
 private:
 
@@ -71,14 +72,15 @@ private:
 
     std::unique_ptr<Impl> impl_ = std::make_unique<EmptyImpl>(); // Уникальная ссылка
 
-    const SheetInterface& sheet_;
+    Sheet* sheet_;
 
-    void CheckCircularDependency(Position current_pos, const std::vector<Position>& reff_cells);
+    void CheckCircularDependency(const std::vector<Position>& reff_cells);
 
 public:
-    explicit Cell(const SheetInterface& sheet)
-        : sheet_(sheet)
-    {}
+    explicit Cell(Sheet& sheet)
+        : sheet_(&sheet)
+    {
+    }
     CellInterface::Value GetValue() const override;
 
     std::string GetText() const override;
