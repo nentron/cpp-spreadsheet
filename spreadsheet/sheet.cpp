@@ -45,7 +45,6 @@ void Sheet::AddNewDependedCells(Position cell, const std::vector<Position>& cell
 }
 
 bool Sheet::SuccessSet(std::unique_ptr<Cell>& cell, Position pos, std::string text){
-    const std::vector<Position> old_reff_pos = cell-> GetReferencedCells();
     try {
         cell -> Set(std::move(text));
     } catch (const ParsingError&){
