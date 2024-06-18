@@ -22,12 +22,11 @@ enum ExprPrecedence {
     EP_END,
 };
 
-// a bit is set when the parentheses are needed
 enum PrecedenceRule {
-    PR_NONE = 0b00,                // never needed
-    PR_LEFT = 0b01,                // needed for a left child
-    PR_RIGHT = 0b10,               // needed for a right child
-    PR_BOTH = PR_LEFT | PR_RIGHT,  // needed for both children
+    PR_NONE = 0b00,
+    PR_LEFT = 0b01,
+    PR_RIGHT = 0b10,
+    PR_BOTH = PR_LEFT | PR_RIGHT,
 };
 
 // PRECEDENCE_RULES[parent][child] determines if parentheses need
@@ -74,7 +73,6 @@ public:
     virtual void DoPrintFormula(std::ostream& out, ExprPrecedence precedence) const = 0;
     virtual double Evaluate(const SheetInterface& sheet) const = 0;
 
-    // higher is tighter
     virtual ExprPrecedence GetPrecedence() const = 0;
 
     void PrintFormula(std::ostream& out, ExprPrecedence parent_precedence,
@@ -122,7 +120,7 @@ public:
     void DoPrintFormula(std::ostream& out, ExprPrecedence precedence) const override {
         lhs_->PrintFormula(out, precedence);
         out << static_cast<char>(type_);
-        rhs_->PrintFormula(out, precedence, /* right_child = */ true);
+        rhs_->PrintFormula(out, precedence, true);
     }
 
     ExprPrecedence GetPrecedence() const override {
@@ -136,7 +134,6 @@ public:
             case Divide:
                 return EP_DIV;
             default:
-                // have to do this because VC++ has a buggy warning
                 assert(false);
                 return static_cast<ExprPrecedence>(INT_MAX);
         }
@@ -454,7 +451,7 @@ double FormulaAST::Execute(const SheetInterface& sheet) const {
 FormulaAST::FormulaAST(std::unique_ptr<ASTImpl::Expr> root_expr, std::forward_list<Position> cells)
     : root_expr_(std::move(root_expr))
     , cells_(std::move(cells)) {
-    cells_.sort();  // to avoid sorting in GetReferencedCells
+    cells_.sort();
 }
 
 FormulaAST::~FormulaAST() = default;

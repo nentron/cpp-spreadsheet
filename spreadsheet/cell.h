@@ -66,11 +66,11 @@ class Sheet;
 class  Cell: public CellInterface {
 private:
 
-    mutable std::optional<double> value_; //Кешируемая значение для формульной ячейки
+    mutable std::optional<double> value_;
 
     Position current_pos_;
 
-    std::unique_ptr<Impl> impl_ = std::make_unique<EmptyImpl>(); // Уникальная ссылка
+    std::unique_ptr<Impl> impl_ = std::make_unique<EmptyImpl>();
 
     Sheet* sheet_;
 
